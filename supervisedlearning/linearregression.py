@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-from enums import CostFunctions
 import matplotlib.pyplot as plt
 
 class LinRegression():
@@ -11,6 +10,7 @@ class LinRegression():
         self.learning_rate = learning_rate
 
         self.theta = np.array([0 for _ in range(trainset.shape[1])])
+
         self.training_features = self.formatting_features(training = True)
         self.training_target = self.formatting_target(training = True)
 
