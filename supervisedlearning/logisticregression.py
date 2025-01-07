@@ -116,6 +116,7 @@ class LogRegression():
             tp, fp, fn, tn = self.confusion_matrix(threshold = i)
             tpr_list.append((tp)/(tp + fn) if (tp + fn) > 0 else 0)
             fpr_list.append((fp)/(fp + tn) if (fp + tn) > 0 else 0)
+            
         plt.plot(fpr_list, tpr_list)
         plt.plot([0,1],[0,1], 'r--')
         plt.title('ROC Curve')
