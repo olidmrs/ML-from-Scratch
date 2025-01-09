@@ -6,7 +6,7 @@ from enums.problemtype import ProblemType
 import matplotlib.pyplot as plt
 
 class NeuralNetwork():
-    # TODO Add activation_function other than sigmoid
+    
     def __init__(
             self,
             train_x : np.ndarray,
@@ -30,42 +30,58 @@ class NeuralNetwork():
         self.learning_rate = learning_rate
 
         self.W = {}
-        self.B = np.array([0 for _ in range(hidden_layers)])
+        self.B = np.array([0 for _ in range(hidden_layers + 1)])
+        self.B = {}
         self.A = {}
         self.cost_function = self.select_costfunction()
         self.cost_history = []
+        self.output_size = 0
         self.type = self.type_problem()
-
-        if (self.activation_function != ActivationFunctions.SIGMOID) & \
-           ((self.train_y == 0) | (self.train_y == 1)).all():
-            raise ValueError(f'Binary target value necessitate activation function: {self.activation_function} ')
         
-    def type_problem(self):
+        
+    def type_problem(self) -> ProblemType:
         match self.cost_function:
             case CostFunctions.CROSSENTROPY:
+                self.output_size = 1
                 return ProblemType.CLASSIFICATION
             case CostFunctions.CLASSCROSSENTROPY:
+                self.output_size = self.test_y.shape[0]
                 return ProblemType.MULTICLASSIFICATION
             case CostFunctions.MSE:
+                self.output_size = 1
                 return ProblemType.REGRESSION
-            
+    
+    
     def initializing(self):
+        np.random.seed(42)
         random.seed(42)
-        for layer in range(self.hidden_layers):
+        for layer in range(self.hidden_layers + 1):
             if layer == 0:
-                self.W[layer] = np.random.randn(self.nb_neurons, self.train_x.shape[1])
+                self.W[layer] = np.random.randn(self.nb_neurons, self.train_x.shape[0])*0.01 
+                self.B[layer] = np.zeros((self.nb_neurons, 1))
+            elif layer != self.hidden_layers:
+                self.W[layer] = np.random.randn(self.nb_neurons, self.nb_neurons) *0.01
+                self.B[layer] = np.zeros((self.nb_neurons, 1))
             else:
-                self.W[layer] = np.random.randn(self.nb_neurons, self.train_x.shape[1])
+                self.W[layer] = np.random.randn(self.output_size, self.nb_neurons)*0.01
+                self.B[layer] = np.zeros((self.output_size, 1))
 
         
     def forward_propagation(self, input : np.ndarray):
-        for layer in range(self.hidden_layers):
+        for layer in range(self.hidden_layers + 1):
             if layer == 0:
                 Z = np.dot(self.W.get(layer), input) + self.B[layer]
-                self.A[layer] = self.activation_function(Z)
+                Z = np.clip(Z, -0.9999, 0.9999)
+                self.A[layer] = self.relu(Z)
+            elif layer == self.hidden_layers:
+                Z = np.dot(self.W.get(layer), self.output_size) + self.B[layer]
+                Z = np.clip(Z, -0.9999, 0.9999)
+                self.A[layer] = self.activation_func(Z)
             else:
                 Z = np.dot(self.W.get(layer), self.A.get(layer - 1)) + self.B[layer]
-                self.A[layer] = self.activation_function(Z)
+                Z = np.clip(Z, -0.9999, 0.9999)
+                self.A[layer] = self.relu(Z)
+
 
     def backward_propagation(self):
         dZcache = {}
@@ -73,35 +89,42 @@ class NeuralNetwork():
         dBcache = {}
         
         for layer in range(len(self.A) - 1, -1, -1):
-            if layer == len(self.A):
-                dZlast = self.A.get(layer) - self.test_y
+            if layer == len(self.A) - 1:
+                dZlast = self.A.get(layer) - self.train_y
                 dZcache[layer] = dZlast
-                dWlast = 1/self.train_x.shape[0] * dZlast * np.transpose(self.A.get(layer - 1))
+                dWlast = 1/self.train_x.shape[1] * np.dot(dZlast, np.transpose(self.A.get(layer - 1)))
                 dWcache[layer] = dWlast
-                dBlast = 1/self.train_x.shape[0] * np.sum(dZlast, 1)
+                dBlast = 1/self.train_x.shape[1] * np.sum(dZlast, 1, keepdims=True)
                 dBcache[layer] = dBlast
-            else:
-                Z = np.dot(self.W.get(layer), self.A.get(layer - 1)) + self.B[layer]
-                dZ = self.W.get(layer) * dZcache.get(layer + 1) * self.d_activation_function(Z)
+            elif layer == 0:
+                dZ = np.dot(np.transpose(self.W.get(layer + 1)), dZcache.get(layer + 1)) * self.d_activation_function(ActivationFunctions.RELU, self.A.get(layer))
                 dZcache[layer] = dZ
-                dW = 1/self.test_x.shape[0] * dZ * np.transpose(self.A.get(layer))
-                dWcache = dW
-                dB = 1/self.test_x.shape[0] * np.sum(dZ, 1)
-                dBcache = dB
+                dW = 1/self.train_x.shape[1] * np.dot(dZ, self.train_x.T)
+                dWcache[layer] = dW
+                dB = 1/self.train_x.shape[1] * np.sum(dZ, 1, keepdims=True)
+                dBcache[layer] = dB
+            else:
+                dZ = np.dot(np.transpose(self.W.get(layer + 1)), dZcache.get(layer + 1)) * self.d_activation_function(ActivationFunctions.RELU, self.A.get(layer))
+                dZcache[layer] = dZ
+                dW = 1/self.train_x.shape[1] * np.dot(dZ, np.transpose(self.A.get(layer)))
+                dWcache[layer] = dW
+                dB = 1/self.train_x.shape[1] * np.sum(dZ, 1, keepdims=True)
+                dBcache[layer] = dB
 
         for weights in range(len(self.W)):
-            self.W[weights] = self.W.get(weights) - self.learning_rate * dWcache.get(weights)
+            self.W[weights] = self.W[weights] - self.learning_rate * dWcache.get(weights)
         
         for b in range(len(self.B)):
-            self.B[b] = dBcache[b]
+            self.B[b] = self.B[b] - self.learning_rate * dBcache.get(b)
         
         
     def d_activation_function(self, act : ActivationFunctions, x : np.ndarray):
         match act:
             case ActivationFunctions.RELU:
                 return np.array(x > 0, dtype = np.float32)
+            
 
-    def get_cost(self, x : np.ndarray):
+    def get_cost(self):
         pred = self.make_prediction()
         match self.cost_function:
             case CostFunctions.CROSSENTROPY:
@@ -109,18 +132,25 @@ class NeuralNetwork():
                 for i in range(len(pred)):
                     cost = cost + (-1 * self.train_y[i] * np.log(pred[i]))
                 return cost
+            
             case CostFunctions.CLASSCROSSENTROPY:
-                return -(1/self.train_x.shape[0])*np.sum(self.train_y * np.log(pred) + (1-self.train_y) * np.log(1-pred))
+                return -(1/self.train_y.shape[1])*np.sum(self.train_y*np.log(pred))
+            
             case CostFunctions.MSE:
-                return (1/(2*self.train_x.shape[0])) * np.sum(pred - self.train_y)
+                return (1/(2*self.train_y.shape[1])) * np.sum(pred - self.train_y.T)
         
     def algorithm(self):
         self.initializing()
         for _ in range(self.iteration):
             self.forward_propagation(self.train_x)
-            self.cost_history.append(self.get_cost(self.make_prediction()))
+            cost = self.get_cost()
             self.backward_propagation()
-
+            self.cost_history.append(cost)
+            print(_)
+            
+    def relu(self, x : np.ndarray) -> np.ndarray:
+        return np.maximum(x, 0)
+    
     def activation_func(self, x : np.ndarray) -> np.ndarray:
         match self.activation_function:
             case ActivationFunctions.RELU:
@@ -144,16 +174,11 @@ class NeuralNetwork():
         return 1/(1+ np.exp(-x))
     
     def soft_max(self, x):
-        return (np.exp(x))/sum(np.exp(x))
+        return (np.exp(x))/sum(np.exp(x), axis = 1, keepdims = True)
 
     def make_prediction(self) -> np.ndarray:
-        match self.type:
-            case ProblemType.CLASSIFICATION:
-                return self.sigmoid_function(self.A.get(list(self.A.keys())[-1]))
-            case ProblemType.MULTICLASSIFICATION:
-                return self.soft_max(self.A.get(list(self.A.keys())[-1]))
-            case ProblemType.REGRESSION:
-                return self.A.get(list(self.A.keys())[-1])
+        return self.A.get(self.hidden_layers)
+            
     
     def plot_error_function(self):
         """
@@ -164,4 +189,13 @@ class NeuralNetwork():
         plt.ylabel('Cost')
         plt.title('Cost function during gradient descent')
         plt.show()
+
+    def predict(self, features : np.ndarray):
+        self.forward_propagation(features)
+        return self.A.get(self.hidden_layers)
+    
+    
+    
+    
+        
     
