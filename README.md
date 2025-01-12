@@ -1,4 +1,4 @@
-# Learning-ML
+# ML-from-Scratch
 
 ### __Description__
 
