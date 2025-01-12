@@ -5,8 +5,6 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.colors as mcolors
 
 class KMeans():
-    # Class used to compute the k means algorithm
-    
     def __init__(self, data : np.ndarray, k : int):
         self.data = data
         self.k = k
