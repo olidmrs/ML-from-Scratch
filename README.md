@@ -20,4 +20,4 @@ __Unsupervised learning:__
 
 ### __Motivation__
 
-I started this project to get a better understand of different machine learning models commonly used in data science. The goal was to focus on the foundational principles of these ML models rather than optimizing their performance. Pratically no feature engineering was done, as it wasn't the objective of this project.
+I started this project to get a better understanding of different machine learning models commonly used in data science. The goal was to focus on the foundational principles of these ML models rather than optimizing their performance. Pratically no feature engineering was done, as it wasn't the objective of this project.
