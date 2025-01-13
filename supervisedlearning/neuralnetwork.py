@@ -43,7 +43,7 @@ class NeuralNetwork():
     def initializing(self):
 
         """
-        Function is used to He initialize weights randomlyand biases and establish the shape of each arrays
+        Function is used to He initialize weights and biases randomly
         """
 
         np.random.seed(42)
