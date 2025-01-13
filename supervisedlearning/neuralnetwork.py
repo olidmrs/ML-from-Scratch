@@ -62,7 +62,8 @@ class NeuralNetwork():
     def forward_propagation(self, input : np.ndarray):
         """
         Function is used to perform forward propagation.
-        ReLu activation fucntion is used for each layer except output layer
+        ReLu activation function is used for each layer except output layer where proper activation function
+        is applied
 
         Args:
             input (np.ndarray): input features to our forward propagation
