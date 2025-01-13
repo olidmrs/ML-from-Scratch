@@ -14,8 +14,8 @@ __Supervised learning:__
 
 __Unsupervised learning:__
 
-- K means clustering **'unsupervisedlearning/dbscan.py'**
-- DBSCAN clustering **'unsupervisedlearning/kmeans.py'**
+- K means clustering **'unsupervisedlearning/kmeans.py'**
+- DBSCAN clustering **'unsupervisedlearning/dbscan.py'**
 
 
 ### __Motivation__
